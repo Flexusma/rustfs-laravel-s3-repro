@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
+    # RustFS runs as a non-root user (uid 10001). Make sure the host/volume is writable by that uid.
+    volumes:
+      - rustfs_data:/data
+    environment:
+      # Default creds are rustfsadmin / rustfsadmin (override here)
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_CONSOLE_ENABLE: "true"
+      # Optional if you want virtual-host style / multi-domain setups:
+      # RUSTFS_SERVER_DOMAINS: example.com
+      # Optional if you want to force the listen addr/port:
+      # RUSTFS_ADDRESS: ":9000"
+    command: ["/data"]
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console/UI
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  rustfs_data:
